@@ -1,4 +1,13 @@
+import hashlib
+
 from supabase import Client
+
+
+def novel_cache_key(intent_key: str, place: str | None) -> str:
+    """Stable cache key for a novel query, stored in the same search_cache table
+    (the `concept` column holds any string). e.g. 'novel:1a2b3c4d5e6f7081'."""
+    raw = f"{(intent_key or '').strip().lower()}|{(place or '').strip().lower()}"
+    return "novel:" + hashlib.sha1(raw.encode()).hexdigest()[:16]
 
 
 def get_cached(supabase: Client, concept: str) -> dict | None:

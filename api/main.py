@@ -7,9 +7,10 @@ import ee
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from ee_runner import run_similarity, CONCEPT_CONFIG
-from supabase_cache import get_cached, set_cached, log_query
-from narrate import generate_dispatch
+from ee_runner import run_similarity, sample_reference, sentinel2_thumb_url, CONCEPT_CONFIG
+from supabase_cache import get_cached, set_cached, log_query, novel_cache_key
+from narrate import generate_dispatch, rewrite_intent, narrate_novel
+from geocode import geocode_point
 
 PROJECT = "buildday-499318"
 
@@ -105,6 +106,81 @@ def _run_concept(concept: str) -> dict:
     return response
 
 
+def _novel_log(seed_name: str, habitat: str) -> list[str]:
+    """Synthesize the 5-line status log for a novel query (mirrors curated shape)."""
+    return [
+        f"⌖ resolving anchor → {seed_name}",
+        "⟳ retrieving embedding · year 2024 · 64-d",
+        f"⟳ searching similar habitat … {habitat}",
+        "✓ scoring global grid · cosine similarity",
+        "◍ composing dispatch",
+    ]
+
+
+def _novel_seed(intent: dict):
+    """Hybrid seed: geocode the named place, else use Claude's proposed seeds.
+    Returns (seeds[list of (lat,lon)], seed_name, seed_coords[lat,lon] or None)."""
+    if intent.get("place"):
+        pt = geocode_point(intent["place"])
+        if pt:
+            return [(pt[0], pt[1])], pt[2], [pt[0], pt[1]]
+        # geocode failed → fall through to proposed seeds if any
+    seeds = [tuple(c) for c in intent.get("proposed_seeds", [])]
+    if seeds:
+        return seeds, intent["habitat_type"], list(seeds[0])
+    return [], intent["habitat_type"], None
+
+
+def _run_novel(q: str) -> dict:
+    """Synchronous end-to-end novel search → Demo-shaped dict (+ cache)."""
+    t0 = time.time()
+    intent = rewrite_intent(q)
+    key = novel_cache_key(intent["intent_key"], intent["place"])
+
+    if _supabase:
+        cached = get_cached(_supabase, key)
+        if cached:
+            log_query(_supabase, key, cache_hit=True, duration_ms=int((time.time() - t0) * 1000))
+            return cached
+
+    seeds, seed_name, seed_coords = _novel_seed(intent)
+    if not seeds:
+        raise HTTPException(status_code=422, detail="could not resolve a seed location")
+
+    ref, used = sample_reference(seeds)
+    if ref is None:
+        raise HTTPException(status_code=422, detail="no embedding data at the seed location")
+
+    response = run_similarity(seeds=seeds, ref_vector=ref, label="novel")
+
+    response["query"] = q.strip()
+    response["seed"] = {
+        "name": seed_name,
+        "coords": seed_coords,
+        "species": intent["habitat_type"],
+        "habitat": intent.get("dispatch_preview", ""),
+        "photo": {
+            "url": sentinel2_thumb_url(*seed_coords) if seed_coords else "",
+            "credit": "Sentinel-2 / Copernicus (2024)",
+        },
+    }
+    response["log"] = _novel_log(seed_name, intent["habitat_type"])
+    response["sources"] = [
+        {"label": "AlphaEarth Foundations", "url": "https://earthengine.google.com/"},
+        {"label": "GBIF", "url": "https://www.gbif.org/"},
+    ]
+    response["dispatch"] = narrate_novel(
+        intent["habitat_type"], intent.get("place"), response["matches"],
+        fallback=intent.get("dispatch_preview", ""),
+    )
+
+    if _supabase:
+        set_cached(_supabase, key, response)
+        log_query(_supabase, key, cache_hit=False, duration_ms=int((time.time() - t0) * 1000))
+
+    return response
+
+
 @app.get("/health")
 def health():
     return {"ok": True}
@@ -121,13 +197,11 @@ def search(concept: str = "kelp"):
 def goal(q: str = ""):
     """Natural-language search: 'prairie like in Montana — brown dry grassland'
     → resolves to a concept → returns ecologically similar places worldwide."""
-    concept = resolve_concept(q)
-    if not concept:
-        raise HTTPException(
-            status_code=404, detail="no anchor found — try a place or a species"
-        )
-    response = _run_concept(concept)
-    # echo the user's prompt back as the query the UI displays
-    if q.strip():
-        response = {**response, "query": q.strip()}
-    return response
+    concept = resolve_concept(q)        # Track 1: curated demo concept, instant
+    if concept:
+        response = _run_concept(concept)
+        # echo the user's prompt back as the query the UI displays
+        if q.strip():
+            response = {**response, "query": q.strip()}
+        return response
+    return _run_novel(q)                # Track 2: synchronous novel pipeline
