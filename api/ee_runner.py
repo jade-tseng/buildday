@@ -104,6 +104,107 @@ CONCEPT_CONFIG = {
 }
 
 
+# Per-grid-cell labels for the prairie top matches, grounded in phase0/REPORT.md.
+# Keyed by the 5° grid cell (lat, lon). `status` maps REPORT plausibility to the
+# UI's verification colors: CONFIRMED (green) = clear prairie/steppe;
+# NOVEL (amber) = borderline semi-arid relative (mountain-steppe, shrubsteppe).
+MATCH_LABELS = {
+    "prairie": {
+        (47.5, -112.5): {
+            "name": "Montana — near Great Falls",
+            "species": "northern mixed-grass prairie",
+            "status": "CONFIRMED",
+            "note": "Rolling dry grassland and rangeland cut by river drainages — brown grass, the home biome itself, 500 km from the seed.",
+        },
+        (47.5, -102.5): {
+            "name": "North / South Dakota — Lake Oahe",
+            "species": "mixed-grass prairie (cultivated)",
+            "status": "CONFIRMED",
+            "note": "Checkerboard dryland agriculture on former prairie, threaded by a great Missouri reservoir. The grassland signal survives the plough.",
+        },
+        (42.5, -102.5): {
+            "name": "Nebraska Sandhills",
+            "species": "sandhills mixed-grass prairie",
+            "status": "CONFIRMED",
+            "note": "The largest intact natural grassland in the western hemisphere — grass-stabilised dunes the embedding reads as kin to Montana.",
+        },
+        (52.5, -112.5): {
+            "name": "Alberta, Canada — Canadian Prairies",
+            "species": "northern fescue prairie",
+            "status": "CONFIRMED",
+            "note": "The prairie doesn't stop at the border. Clear agricultural grassland continuing the Great Plains corridor north.",
+        },
+        (42.5, -107.5): {
+            "name": "Wyoming — Powder River rangeland",
+            "species": "prairie / shrubsteppe transition",
+            "status": "CONFIRMED",
+            "note": "Brown rangeland on the prairie's dry western edge, grading toward sagebrush but still grassland at heart.",
+        },
+        (47.5, 72.5): {
+            "name": "Central Kazakhstan steppe",
+            "species": "Kazakh steppe",
+            "status": "CONFIRMED",
+            "note": "Flat, monotone, semi-arid brown grassland half a world away — the same mid-latitude temperate steppe, wearing Montana's signature.",
+        },
+        (52.5, 62.5): {
+            "name": "Southern Urals — Kazakh steppe margin",
+            "species": "forb-rich steppe",
+            "status": "CONFIRMED",
+            "note": "Agricultural steppe and settlements on the Eurasian grassland belt; a textbook steppe-biome match.",
+        },
+        (47.5, 112.5): {
+            "name": "Eastern Mongolia steppe",
+            "species": "Mongolian steppe",
+            "status": "CONFIRMED",
+            "note": "Pale, dry, open grassland on the Mongolian plateau — one of the last great intact temperate grasslands on Earth.",
+        },
+        (47.5, 102.5): {
+            "name": "Central Mongolia steppe",
+            "species": "Mongolian steppe",
+            "status": "CONFIRMED",
+            "note": "Brown arid grassland with a faint field patchwork, deep in the Asian interior — the prairie's eastern twin.",
+        },
+        # — borderline (amber) —
+        (47.5, 82.5): {
+            "name": "Eastern Kazakhstan / Xinjiang border",
+            "species": "semi-arid montane grassland",
+            "status": "NOVEL",
+            "note": "Scores high but the chip shows rocky, snow-dusted terrain — more arid mountain than open steppe. A flagged near-relative.",
+        },
+        (42.5, 72.5): {
+            "name": "Kyrgyzstan / Kazakhstan foothills",
+            "species": "mountain-steppe transition",
+            "status": "NOVEL",
+            "note": "An eroded river valley in rugged country — the grassland signal blurred into the Tien Shan's edge. Plausible, not pure.",
+        },
+        (42.5, -117.5): {
+            "name": "Oregon / Nevada — Great Basin",
+            "species": "sagebrush shrubsteppe",
+            "status": "NOVEL",
+            "note": "Reddish-brown high desert with drainage channels — sagebrush country adjacent to the prairie biome, not grassland proper.",
+        },
+        (42.5, -112.5): {
+            "name": "Southern Idaho — Snake River Plain",
+            "species": "high-desert shrubsteppe",
+            "status": "NOVEL",
+            "note": "Red-brown arid terrain on the prairie's dry frontier — a desert relative the signal can't quite tell apart.",
+        },
+        (47.5, 92.5): {
+            "name": "Western Mongolia — Altai margins",
+            "species": "steppe-desert transition",
+            "status": "NOVEL",
+            "note": "Sandy, rocky ground beneath snow-capped ridges — the arid Gobi edge where steppe gives way to desert.",
+        },
+        (52.5, 72.5): {
+            "name": "Northern Kazakhstan / W. Siberia",
+            "species": "forest-steppe",
+            "status": "NOVEL",
+            "note": "Greener, wetter, water bodies scattered through — the forest-steppe transition at the grassland's humid northern limit.",
+        },
+    },
+}
+
+
 def _haversine_km(lat1, lon1, lat2, lon2):
     R = 6371.0
     d = math.radians
@@ -157,6 +258,61 @@ def _batch_sample(image, coords_latlon, scale=SAMPLE_SCALE):
             continue
         out.append((lat, lon, vec if vec[0] is not None else None))
     return out
+
+
+def _build_matches(concept: str, top: list, limit: int = 6) -> list:
+    """Turn thinned (lat, lon, score) hits into Demo-shaped match cards,
+    merging in REPORT.md geography/status labels where we have them."""
+    labels = MATCH_LABELS.get(concept, {})
+    matches = []
+    for i, (lat, lon, score) in enumerate(top[:limit], 1):
+        label = labels.get((round(lat, 1), round(lon, 1)))
+        if label:
+            note = f"{label['note']} · cosine {score:.4f}"
+            match = {
+                "id": label["name"].split(" —")[0].split(" /")[0].strip().lower().replace(" ", "-"),
+                "name": label["name"],
+                "coords": [round(lat, 4), round(lon, 4)],
+                "status": label["status"],
+                "species": label["species"],
+                "note": note,
+                "photo": {"url": "", "credit": ""},
+            }
+        else:
+            match = {
+                "id": f"match{i}",
+                "name": f"Signature match ({lat:+.2f}, {lon:+.2f})",
+                "coords": [round(lat, 4), round(lon, 4)],
+                "status": "NOVEL",
+                "species": "habitat signature match",
+                "note": f"Habitat signature match · cosine {score:.4f}.",
+                "photo": {"url": "", "credit": ""},
+            }
+        matches.append(match)
+    return matches
+
+
+def sentinel2_thumb_url(lat: float, lon: float, half_deg: float = 0.18) -> str:
+    """Best-effort Sentinel-2 true-color RGB thumbnail for a match location —
+    the actual satellite chip of the place (used when pre-seeding the cache).
+    Returns "" on failure so callers can degrade gracefully."""
+    try:
+        region = ee.Geometry.Rectangle(
+            [lon - half_deg, lat - half_deg, lon + half_deg, lat + half_deg]
+        )
+        s2 = (
+            ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+            .filterBounds(region)
+            .filterDate("2024-01-01", "2024-12-31")
+            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
+            .select(["B4", "B3", "B2"])
+            .median()
+        )
+        return s2.getThumbURL(
+            {"min": 0, "max": 2500, "dimensions": 384, "region": region, "format": "png"}
+        )
+    except Exception:
+        return ""
 
 
 def run_similarity(concept: str) -> dict:
@@ -213,18 +369,7 @@ def run_similarity(concept: str) -> dict:
     scored.sort(key=lambda x: x[2], reverse=True)
     top = _spatial_thin(scored, cfg["thin_km"])
 
-    matches = [
-        {
-            "id": f"match{i}",
-            "name": f"Match {i} ({lat:+.2f}, {lon:+.2f})",
-            "coords": [round(lat, 4), round(lon, 4)],
-            "status": "NOVEL",
-            "species": "habitat signature match",
-            "note": f"Cosine similarity {score:.4f} to reference embedding.",
-            "photo": {"url": "", "credit": ""},
-        }
-        for i, (lat, lon, score) in enumerate(top[:5], 1)
-    ]
+    matches = _build_matches(concept, top, limit=6)
 
     return {
         "query": cfg["query"],
