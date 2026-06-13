@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+earthengine-api==1.7.30
+numpy==2.2.6
+Pillow==11.2.1
+requests==2.32.3
+supabase
+anthropic
