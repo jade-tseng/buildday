@@ -4,6 +4,7 @@ import MapView from "./components/MapView";
 import MapErrorBoundary from "./components/MapErrorBoundary";
 import QueryBar from "./components/QueryBar";
 import DispatchPanel from "./components/DispatchPanel";
+import AboutSection from "./components/AboutSection";
 import { DEMO, detectConcept, pickMock, type Coords, type Demo } from "./data/demo";
 import { fetchGoal } from "./util/api";
 import "./styles/app.css";
@@ -172,7 +173,12 @@ export default function App() {
   const mapMounted = phase === "dissolving" || phase === "result";
   const docked = phase !== "idle";
 
+  const scrollToAbout = () => {
+    document.getElementById("about")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
+    <>
     <div className={`app phase-${phase}`}>
       {/* top bar */}
       <header className="topbar mono">
@@ -246,6 +252,20 @@ export default function App() {
         {mapMounted && (
           <div className="credit mono">Esri, Maxar, Earthstar Geographics</div>
         )}
+
+        {/* scroll-down affordance → the About dossier (idle only) */}
+        {phase === "idle" && (
+          <button
+            className="scroll-cue"
+            onClick={scrollToAbout}
+            aria-label="Scroll down to learn about this tool"
+          >
+            <span>about this instrument</span>
+            <span className="scroll-cue-arrow" aria-hidden="true">
+              ↓
+            </span>
+          </button>
+        )}
       </div>
 
       <DispatchPanel
@@ -258,6 +278,9 @@ export default function App() {
         onBack={backToGlobe}
       />
     </div>
+
+      <AboutSection />
+    </>
   );
 }
 
