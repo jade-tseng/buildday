@@ -126,5 +126,126 @@ export const DEMO: Demo = {
   ],
 };
 
+// Offline fallback for the prairie path — mirrors the live /goal?q=prairie…
+// response (real phase0/REPORT.md matches & cosine scores) so the demo still
+// runs if the API/cache is unavailable. Match photos are left empty (the map
+// fly-to shows real satellite ground); the cached API response carries live
+// Sentinel-2 chips.
+export const PRAIRIE_DEMO: Demo = {
+  query: "prairie like in montana — brown dry grassland/rangeland",
+  seed: {
+    name: "American Prairie Reserve, Montana",
+    coords: [47.7, -107.6],
+    species: "mixed-grass prairie assemblage",
+    habitat: "Semi-arid continental grassland, 300–500 mm annual precipitation.",
+    photo: {
+      url: "https://upload.wikimedia.org/wikipedia/commons/9/9c/Northern_Great_Plains.jpg",
+      credit: "American Prairie Reserve",
+    },
+  },
+  dispatch:
+    "The Northern Great Plains once held more bison than stars visible to the naked eye. " +
+    "The satellite reads the soil moisture regime and canopy architecture, not the animals — " +
+    "but it finds the same signal on every continent that still has intact semi-arid grassland. " +
+    "What comes back is a map of where the prairie went.",
+  matches: [
+    {
+      id: "montana",
+      name: "Montana — near Great Falls",
+      coords: [47.5, -112.5],
+      status: "CONFIRMED",
+      species: "northern mixed-grass prairie",
+      note:
+        "Rolling dry grassland and rangeland cut by river drainages — brown grass, the home " +
+        "biome itself, 500 km from the seed. · cosine 0.8955",
+      photo: { url: "", credit: "" },
+    },
+    {
+      id: "kazakhstan-east",
+      name: "Eastern Kazakhstan / Xinjiang border",
+      coords: [47.5, 82.5],
+      status: "NOVEL",
+      species: "semi-arid montane grassland",
+      note:
+        "Scores high but the chip shows rocky, snow-dusted terrain — more arid mountain than " +
+        "open steppe. A flagged near-relative. · cosine 0.8522",
+      photo: { url: "", credit: "" },
+    },
+    {
+      id: "dakota",
+      name: "North / South Dakota — Lake Oahe",
+      coords: [47.5, -102.5],
+      status: "CONFIRMED",
+      species: "mixed-grass prairie (cultivated)",
+      note:
+        "Checkerboard dryland agriculture on former prairie, threaded by a great Missouri " +
+        "reservoir. The grassland signal survives the plough. · cosine 0.7770",
+      photo: { url: "", credit: "" },
+    },
+    {
+      id: "kyrgyzstan",
+      name: "Kyrgyzstan / Kazakhstan foothills",
+      coords: [42.5, 72.5],
+      status: "NOVEL",
+      species: "mountain-steppe transition",
+      note:
+        "An eroded river valley in rugged country — the grassland signal blurred into the Tien " +
+        "Shan's edge. Plausible, not pure. · cosine 0.7190",
+      photo: { url: "", credit: "" },
+    },
+    {
+      id: "kazakhstan-central",
+      name: "Central Kazakhstan steppe",
+      coords: [47.5, 72.5],
+      status: "CONFIRMED",
+      species: "Kazakh steppe",
+      note:
+        "Flat, monotone, semi-arid brown grassland half a world away — the same mid-latitude " +
+        "temperate steppe, wearing Montana's signature. · cosine 0.7190",
+      photo: { url: "", credit: "" },
+    },
+    {
+      id: "great-basin",
+      name: "Oregon / Nevada — Great Basin",
+      coords: [42.5, -117.5],
+      status: "NOVEL",
+      species: "sagebrush shrubsteppe",
+      note:
+        "Reddish-brown high desert with drainage channels — sagebrush country adjacent to the " +
+        "prairie biome, not grassland proper. · cosine 0.7062",
+      photo: { url: "", credit: "" },
+    },
+  ],
+  sources: [
+    { label: "American Prairie", url: "https://www.americanprairie.org/" },
+    { label: "GBIF Grasslands", url: "https://www.gbif.org/" },
+  ],
+  log: [
+    "⌖ resolving anchor → Phillips County, MT (47.70, -107.60)",
+    "⟳ retrieving embedding · year 2024 · 64-d",
+    "⟳ searching similar habitat … scanning globe",
+    "✓ verifying against land cover records",
+    "◍ composing dispatch",
+  ],
+};
+
+// Mirror of the backend keyword resolver (api/main.py resolve_concept) so the
+// UI can validate input and pick the right offline fallback.
+export type Concept = "prairie" | "kelp";
+
+export function detectConcept(query: string): Concept | null {
+  const q = query.toLowerCase();
+  if (/prairie|grassland|rangeland|steppe|montana|plains|savanna/.test(q)) return "prairie";
+  if (/kelp|monterey|reef|coast|seaweed|ocean/.test(q)) return "kelp";
+  return null;
+}
+
+export function pickMock(query: string): Demo {
+  return detectConcept(query) === "prairie" ? PRAIRIE_DEMO : DEMO;
+}
+
 // Ghost suggestions hint at scope without committing to building them (§5).
 export const SUGGESTIONS = ["chanterelle forests", "cold-water reefs"];
+
+// One-click working suggestion for the prairie /goal path.
+export const PRAIRIE_SUGGESTION = "prairie like in Montana — brown dry grassland/rangeland";

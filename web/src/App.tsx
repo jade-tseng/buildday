@@ -4,8 +4,8 @@ import MapView from "./components/MapView";
 import MapErrorBoundary from "./components/MapErrorBoundary";
 import QueryBar from "./components/QueryBar";
 import DispatchPanel from "./components/DispatchPanel";
-import { DEMO, type Coords, type Demo } from "./data/demo";
-import { fetchSearch } from "./util/api";
+import { DEMO, detectConcept, pickMock, type Coords, type Demo } from "./data/demo";
+import { fetchGoal } from "./util/api";
 import "./styles/app.css";
 
 type Phase = "idle" | "flying" | "dissolving" | "result";
@@ -22,9 +22,6 @@ const usePrefersReducedMotion = () => {
   }, []);
   return reduced;
 };
-
-// is this the working demo query? (kelp path only — §13)
-const matchesDemo = (q: string) => /kelp|monterey/i.test(q);
 
 export default function App() {
   const reducedMotion = usePrefersReducedMotion();
@@ -55,15 +52,36 @@ export default function App() {
 
   useEffect(() => () => clearTimers(), []);
 
-  // deep-link: /?run auto-plays the scripted demo (handy for demos & testing)
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("run")) {
-      setQuery(DEMO.query);
-      after(600, () => {
-        fetchSearch("kelp")
-          .then((data) => { setResult(data); runAnimation(data); })
-          .catch(() => runAnimation(DEMO));
+  // run a goal query against the API, falling back to the local mock on failure
+  const runGoal = useCallback((q: string) => {
+    setRunning(true);
+    setError(null);
+    setLog(["⌖ connecting…"]);
+    fetchGoal(q)
+      .then((data) => {
+        setResult(data);
+        runAnimation(data);
+      })
+      .catch(() => {
+        const mock = pickMock(q);
+        setResult(mock);
+        runAnimation(mock);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // deep-links (handy for demos & testing):
+  //   /?run            → kelp demo query
+  //   /?goal=<prompt>  → run any goal prompt (e.g. ?goal=prairie like in montana)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const goalQ = params.get("goal");
+    if (goalQ) {
+      setQuery(goalQ);
+      after(600, () => runGoal(goalQ));
+    } else if (params.has("run")) {
+      setQuery(DEMO.query);
+      after(600, () => runGoal(DEMO.query));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,19 +137,14 @@ export default function App() {
 
   const onSubmit = useCallback(() => {
     const q = query.trim() || DEMO.query; // empty Enter runs the demo
-    if (!matchesDemo(q)) {
+    if (!detectConcept(q)) {
       // empty/error state stays in character (§11)
       setError("⌖ no anchor found — try a place or a species");
       return;
     }
     if (!query.trim()) setQuery(DEMO.query);
-    setRunning(true);
-    setError(null);
-    setLog(["⌖ connecting…"]);
-    fetchSearch("kelp")
-      .then((data) => { setResult(data); runAnimation(data); })
-      .catch(() => runAnimation(DEMO));
-  }, [query, runAnimation]);
+    runGoal(q);
+  }, [query, runGoal]);
 
   const backToGlobe = useCallback(() => {
     clearTimers();
@@ -221,6 +234,10 @@ export default function App() {
             if (error) setError(null);
           }}
           onSubmit={onSubmit}
+          onPick={(q) => {
+            setQuery(q);
+            runGoal(q);
+          }}
         />
 
         {error && <div className="error-line mono">{error}</div>}

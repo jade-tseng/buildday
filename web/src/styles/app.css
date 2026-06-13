@@ -213,6 +213,23 @@
   color: var(--bone);
   border-color: var(--signal-deep);
 }
+/* working suggestion (runs a real /goal query) — reads as live, not a ghost */
+.qbar-chip--live {
+  color: var(--signal);
+  border-color: var(--signal-deep);
+}
+.qbar-chip--live::before {
+  content: "◍ ";
+  color: var(--biosphere);
+}
+.qbar-chip--live:hover {
+  color: var(--bone);
+  border-color: var(--signal);
+}
+.qbar-chip--live:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 /* status log — types out the pipeline as it runs */
 .qbar-log {
