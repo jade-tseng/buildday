@@ -1,0 +1,19 @@
+[
+  {"query": "What are the coordinates of Denver, Colorado?", "should_trigger": true},
+  {"query": "Give me the bounding box for France", "should_trigger": true},
+  {"query": "Show me the polygon for Yosemite National Park", "should_trigger": true},
+  {"query": "Get a satellite image of Tokyo", "should_trigger": true},
+  {"query": "What does the Grand Canyon look like from space?", "should_trigger": true},
+  {"query": "Where is Madagascar?", "should_trigger": true},
+  {"query": "What is the area of Texas in km²?", "should_trigger": true},
+  {"query": "Show me the boundary of Yellowstone National Park", "should_trigger": true},
+  {"query": "Satellite imagery for the Amazon rainforest", "should_trigger": true},
+  {"query": "Get me land cover data for Seoul, South Korea", "should_trigger": true},
+  {"query": "How do I center a div in CSS?", "should_trigger": false},
+  {"query": "Write me a Python function to sort a list", "should_trigger": false},
+  {"query": "What is 247 divided by 13?", "should_trigger": false},
+  {"query": "Summarize this text: The quick brown fox jumped over the lazy dog", "should_trigger": false},
+  {"query": "Help me write a cover letter for a software engineering job", "should_trigger": false},
+  {"query": "What is the capital of France?", "should_trigger": false},
+  {"query": "Fix this SQL query: SELECT * FROM users WHERE id = 1", "should_trigger": false}
+]
