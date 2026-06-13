@@ -4,7 +4,8 @@ import MapView from "./components/MapView";
 import MapErrorBoundary from "./components/MapErrorBoundary";
 import QueryBar from "./components/QueryBar";
 import DispatchPanel from "./components/DispatchPanel";
-import { DEMO, type Coords } from "./data/demo";
+import { DEMO, type Coords, type Demo } from "./data/demo";
+import { fetchSearch } from "./util/api";
 import "./styles/app.css";
 
 type Phase = "idle" | "flying" | "dissolving" | "result";
@@ -33,6 +34,7 @@ export default function App() {
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<Demo>(DEMO);
 
   const [dissolve, setDissolve] = useState(0);
   const [showSeed, setShowSeed] = useState(false);
@@ -57,26 +59,31 @@ export default function App() {
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has("run")) {
       setQuery(DEMO.query);
-      after(600, () => runDemo());
+      after(600, () => {
+        fetchSearch("kelp")
+          .then((data) => { setResult(data); runAnimation(data); })
+          .catch(() => runAnimation(DEMO));
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── the scripted run (§6) ────────────────────────────────────────────────
-  const runDemo = useCallback(() => {
+  const runAnimation = useCallback((data: Demo) => {
     clearTimers();
     setError(null);
     setRunning(true);
     setLog([]);
-    setPhase("flying"); // globe spins Monterey to front; seed faces us
+    setPhase("flying"); // globe spins seed to front; seed pin faces us
 
     // status log types out, ~600ms stagger (§5)
-    DEMO.log.forEach((line, i) => {
+    data.log.forEach((line, i) => {
       after(350 + i * 600, () => setLog((l) => [...l, line]));
     });
 
     // seed pin drops shortly after the spin begins to settle
     after(900, () => setShowSeed(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // fly (spin) finished → dissolve ASCII into satellite (§4)
@@ -118,8 +125,13 @@ export default function App() {
       return;
     }
     if (!query.trim()) setQuery(DEMO.query);
-    runDemo();
-  }, [query, runDemo]);
+    setRunning(true);
+    setError(null);
+    setLog(["⌖ connecting…"]);
+    fetchSearch("kelp")
+      .then((data) => { setResult(data); runAnimation(data); })
+      .catch(() => runAnimation(DEMO));
+  }, [query, runAnimation]);
 
   const backToGlobe = useCallback(() => {
     clearTimers();
@@ -136,11 +148,11 @@ export default function App() {
   }, []);
 
   const focusMatch = useCallback((id: string) => {
-    const m = DEMO.matches.find((x) => x.id === id);
+    const m = result.matches.find((x) => x.id === id);
     if (!m) return;
     setActiveId(id);
     setFocus({ coords: m.coords, key: Date.now() });
-  }, []);
+  }, [result]);
 
   const globePhase: GlobePhase =
     phase === "result" ? "hidden" : (phase as GlobePhase);
@@ -156,7 +168,7 @@ export default function App() {
           <span className="topbar-live">
             <span className="topbar-live-dot" /> live
           </span>
-          <Ticker phase={phase} />
+          <Ticker phase={phase} seedCoords={result.seed.coords} />
         </span>
       </header>
 
@@ -170,8 +182,8 @@ export default function App() {
           {mapMounted && (
             <MapErrorBoundary>
               <MapView
-                seed={DEMO.seed}
-                matches={DEMO.matches}
+                seed={result.seed}
+                matches={result.matches}
                 showSeed={showSeed}
                 showMatches={showMatches}
                 activeId={activeId}
@@ -192,7 +204,7 @@ export default function App() {
         >
           <GlobeCanvas
             phase={globePhase}
-            seed={DEMO.seed.coords}
+            seed={result.seed.coords}
             dissolveProgress={dissolve}
             reducedMotion={reducedMotion}
             onFlyComplete={onFlyComplete}
@@ -220,7 +232,7 @@ export default function App() {
       </div>
 
       <DispatchPanel
-        demo={DEMO}
+        demo={result}
         visible={dispatchVisible}
         activeId={activeId}
         reducedMotion={reducedMotion}
@@ -233,7 +245,7 @@ export default function App() {
 }
 
 // slowly ticking coordinate readout — sells "instrument" (§4)
-function Ticker({ phase }: { phase: Phase }) {
+function Ticker({ phase, seedCoords }: { phase: Phase; seedCoords: Coords }) {
   const [t, setT] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => setT((x) => x + 1), 900);
@@ -242,7 +254,7 @@ function Ticker({ phase }: { phase: Phase }) {
   if (phase === "result") {
     return (
       <span className="topbar-coord">
-        {DEMO.seed.coords[0].toFixed(2)} / {DEMO.seed.coords[1].toFixed(2)}
+        {seedCoords[0].toFixed(2)} / {seedCoords[1].toFixed(2)}
       </span>
     );
   }
