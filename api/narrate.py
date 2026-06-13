@@ -149,3 +149,63 @@ def narrate_novel(habitat_type: str, place: str | None, matches: list[dict], fal
         return msg.content[0].text
     except Exception:
         return fallback or ""
+
+
+def enrich_matches(habitat_type: str, matches: list[dict], places: list) -> list[dict]:
+    """Enrich novel match cards with a human place name + a short description.
+
+    `matches` are the raw similarity hits (coords + cosine note); `places` is the
+    reverse-geocoded locality string (or None) for each, aligned by index. Makes a
+    single Claude call returning, per match, {name, region, note}. Returns a list
+    aligned to `matches`; entries are {} on failure so the caller keeps the generic
+    card. Degrades to [] entirely if no API key / the call fails.
+    """
+    if not matches:
+        return []
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return [{} for _ in matches]
+
+    lines = []
+    for i, (m, place) in enumerate(zip(matches, places)):
+        lat, lon = m["coords"][0], m["coords"][1]
+        loc = place or "no nearby settlement (remote / open water)"
+        lines.append(f"{i}. ({lat:.2f}, {lon:.2f}) — nearest place: {loc} — cosine {m.get('note','')}")
+    listing = "\n".join(lines)
+
+    prompt = (
+        f"A planetary habitat-similarity search for '{habitat_type}' returned these "
+        f"locations (each a satellite-embedding match). For each, write a concise label "
+        f"and a one-sentence description.\n\n{listing}\n\n"
+        "Respond with ONLY a JSON array, one object per location IN ORDER, each:\n"
+        '  "name": short human place label — closest city/region + country '
+        '(e.g. "Sitka, Southeast Alaska, USA"); for remote/ocean points say where it is '
+        'relative to the nearest land/region.\n'
+        '  "region": country or broad region.\n'
+        '  "note": ONE sentence (no markdown) on where this is and its ecological '
+        f"character relative to '{habitat_type}'.\n"
+        "Ground everything in the given coordinates and nearest place — do not invent."
+    )
+    try:
+        msg = _client().messages.create(
+            model=MODEL,
+            max_tokens=1200,
+            system="Respond with only a JSON array. No markdown fences, no commentary.",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = msg.content[0].text.strip()
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text).strip()
+        data = json.loads(text)
+        if not isinstance(data, list):
+            return [{} for _ in matches]
+    except Exception:
+        return [{} for _ in matches]
+
+    out = []
+    for i in range(len(matches)):
+        e = data[i] if i < len(data) and isinstance(data[i], dict) else {}
+        out.append({
+            "name": (e.get("name") or "").strip(),
+            "region": (e.get("region") or "").strip(),
+            "note": (e.get("note") or "").strip(),
+        })
+    return out

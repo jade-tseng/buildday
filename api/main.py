@@ -9,8 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ee_runner import run_similarity, sample_reference, sentinel2_thumb_url, CONCEPT_CONFIG
 from supabase_cache import get_cached, set_cached, log_query, novel_cache_key
-from narrate import generate_dispatch, rewrite_intent, narrate_novel
-from geocode import geocode_point
+from narrate import generate_dispatch, rewrite_intent, narrate_novel, enrich_matches
+from geocode import geocode_point, reverse_geocode
 
 PROJECT = "buildday-499318"
 
@@ -182,6 +182,20 @@ def _novel_complete(payload: dict) -> dict:
         ref_vector=payload["ref_vector"],
         label="novel",
     )
+
+    # enrich the raw (lat,lon) hits with a place name + description: reverse-geocode
+    # each match for a factual locality, then let Claude write the label + note.
+    matches = response["matches"]
+    places = [reverse_geocode(m["coords"][0], m["coords"][1]) for m in matches]
+    enriched = enrich_matches(payload["habitat_type"], matches, places)
+    for m, e in zip(matches, enriched):
+        if e.get("name"):
+            m["name"] = e["name"]
+        if e.get("note"):
+            m["note"] = e["note"]
+        # secondary line: the habitat we matched on (generic "signature match" before)
+        m["species"] = payload["habitat_type"]
+
     response["query"] = payload["query"]
     response["seed"] = payload["seed"]
     response["log"] = payload["log"]
