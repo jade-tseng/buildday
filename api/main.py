@@ -131,8 +131,71 @@ def _novel_seed(intent: dict):
     return [], intent["habitat_type"], None
 
 
+NOVEL_SOURCES = [
+    {"label": "AlphaEarth Foundations", "url": "https://earthengine.google.com/"},
+    {"label": "GBIF", "url": "https://www.gbif.org/"},
+]
+
+
+def _novel_prepare(q: str) -> dict:
+    """FAST stage: intent rewrite + hybrid seed + one-shot embedding sample.
+    Returns a payload with the reference vector and a fully-built seed block,
+    but does NOT run the global grid scan. Raises 422 if no usable seed."""
+    intent = rewrite_intent(q)
+    key = novel_cache_key(intent["intent_key"], intent["place"])
+
+    seeds, seed_name, seed_coords = _novel_seed(intent)
+    if not seeds:
+        raise HTTPException(status_code=422, detail="could not resolve a seed location")
+
+    ref, _used = sample_reference(seeds)
+    if ref is None:
+        raise HTTPException(status_code=422, detail="no embedding data at the seed location")
+
+    return {
+        "cache_key": key,
+        "query": q.strip(),
+        "habitat_type": intent["habitat_type"],
+        "place": intent.get("place"),
+        "ref_vector": ref,
+        "seeds": [list(s) for s in seeds],
+        "dispatch_preview": intent.get("dispatch_preview", ""),
+        "log": _novel_log(seed_name, intent["habitat_type"]),
+        "seed": {
+            "name": seed_name,
+            "coords": seed_coords,
+            "species": intent["habitat_type"],
+            "habitat": intent.get("dispatch_preview", ""),
+            "photo": {
+                "url": sentinel2_thumb_url(*seed_coords) if seed_coords else "",
+                "credit": "Sentinel-2 / Copernicus (2024)",
+            },
+        },
+    }
+
+
+def _novel_complete(payload: dict) -> dict:
+    """SLOW stage: run the global grid scan with the prepared reference vector,
+    then assemble the full Demo (seed/query/log from payload, narrated dispatch)."""
+    response = run_similarity(
+        seeds=[tuple(s) for s in payload["seeds"]],
+        ref_vector=payload["ref_vector"],
+        label="novel",
+    )
+    response["query"] = payload["query"]
+    response["seed"] = payload["seed"]
+    response["log"] = payload["log"]
+    response["sources"] = NOVEL_SOURCES
+    response["dispatch"] = narrate_novel(
+        payload["habitat_type"], payload.get("place"), response["matches"],
+        fallback=payload.get("dispatch_preview", ""),
+    )
+    return response
+
+
 def _run_novel(q: str) -> dict:
-    """Synchronous end-to-end novel search → Demo-shaped dict (+ cache)."""
+    """Synchronous end-to-end novel search → Demo-shaped dict (+ cache).
+    The always-working fallback for the progressive /resolve + /matches split."""
     t0 = time.time()
     intent = rewrite_intent(q)
     key = novel_cache_key(intent["intent_key"], intent["place"])
@@ -143,40 +206,12 @@ def _run_novel(q: str) -> dict:
             log_query(_supabase, key, cache_hit=True, duration_ms=int((time.time() - t0) * 1000))
             return cached
 
-    seeds, seed_name, seed_coords = _novel_seed(intent)
-    if not seeds:
-        raise HTTPException(status_code=422, detail="could not resolve a seed location")
-
-    ref, used = sample_reference(seeds)
-    if ref is None:
-        raise HTTPException(status_code=422, detail="no embedding data at the seed location")
-
-    response = run_similarity(seeds=seeds, ref_vector=ref, label="novel")
-
-    response["query"] = q.strip()
-    response["seed"] = {
-        "name": seed_name,
-        "coords": seed_coords,
-        "species": intent["habitat_type"],
-        "habitat": intent.get("dispatch_preview", ""),
-        "photo": {
-            "url": sentinel2_thumb_url(*seed_coords) if seed_coords else "",
-            "credit": "Sentinel-2 / Copernicus (2024)",
-        },
-    }
-    response["log"] = _novel_log(seed_name, intent["habitat_type"])
-    response["sources"] = [
-        {"label": "AlphaEarth Foundations", "url": "https://earthengine.google.com/"},
-        {"label": "GBIF", "url": "https://www.gbif.org/"},
-    ]
-    response["dispatch"] = narrate_novel(
-        intent["habitat_type"], intent.get("place"), response["matches"],
-        fallback=intent.get("dispatch_preview", ""),
-    )
+    payload = _novel_prepare(q)
+    response = _novel_complete(payload)
 
     if _supabase:
-        set_cached(_supabase, key, response)
-        log_query(_supabase, key, cache_hit=False, duration_ms=int((time.time() - t0) * 1000))
+        set_cached(_supabase, payload["cache_key"], response)
+        log_query(_supabase, payload["cache_key"], cache_hit=False, duration_ms=int((time.time() - t0) * 1000))
 
     return response
 
@@ -205,3 +240,85 @@ def goal(q: str = ""):
             response = {**response, "query": q.strip()}
         return response
     return _run_novel(q)                # Track 2: synchronous novel pipeline
+
+
+@app.get("/resolve")
+def resolve(q: str = ""):
+    """FAST stage of the progressive UX (~1-3s). Returns enough to center the map
+    and drop the seed pin immediately, plus a cache_key the slow /matches reads.
+
+    Curated hit → seed_meta from CONCEPT_CONFIG. Novel → intent + geocode + one
+    embedding sample; stashes a pending row so /matches skips re-sampling."""
+    concept = resolve_concept(q)
+    if concept:
+        cfg = CONCEPT_CONFIG[concept]
+        cached = bool(_supabase and get_cached(_supabase, concept))
+        return {
+            "query": q.strip(),
+            "track": "curated",
+            "concept": concept,
+            "cache_key": concept,
+            "seed": cfg["seed_meta"],
+            "dispatch_preview": cfg["dispatch"],
+            "log": cfg["log"],
+            "cached": cached,
+        }
+
+    # novel
+    intent = rewrite_intent(q)
+    key = novel_cache_key(intent["intent_key"], intent["place"])
+    cached_full = get_cached(_supabase, key) if _supabase else None
+    if cached_full:
+        return {
+            "query": q.strip(),
+            "track": "novel",
+            "concept": None,
+            "cache_key": key,
+            "seed": cached_full.get("seed", {}),
+            "dispatch_preview": cached_full.get("dispatch", ""),
+            "log": cached_full.get("log", []),
+            "cached": True,
+        }
+
+    payload = _novel_prepare(q)
+    # stash the prepared payload so /matches doesn't re-geocode / re-sample
+    if _supabase:
+        set_cached(_supabase, "pending:" + key, payload)
+    return {
+        "query": payload["query"],
+        "track": "novel",
+        "concept": None,
+        "cache_key": key,
+        "seed": payload["seed"],
+        "dispatch_preview": payload["dispatch_preview"],
+        "log": payload["log"],
+        "cached": False,
+    }
+
+
+@app.get("/matches")
+def matches(cache_key: str = "", q: str = ""):
+    """SLOW stage (~30-90s): global grid scan → completed Demo. Idempotent and
+    cache-backed. Reads the pending row /resolve stashed; falls back to the full
+    synchronous pipeline if the pending row / Supabase is unavailable."""
+    # curated cache_key → shared concept flow (cache hit = fast)
+    if cache_key and not cache_key.startswith("novel:"):
+        if cache_key not in CONCEPT_CONFIG:
+            raise HTTPException(status_code=400, detail=f"Unknown concept '{cache_key}'")
+        response = _run_concept(cache_key)
+        return {**response, "query": q.strip()} if q.strip() else response
+
+    if _supabase and cache_key:
+        full = get_cached(_supabase, cache_key)
+        if full:
+            return full
+        pending = get_cached(_supabase, "pending:" + cache_key)
+        if pending:
+            t0 = time.time()
+            demo = _novel_complete(pending)
+            set_cached(_supabase, cache_key, demo)
+            log_query(_supabase, cache_key, cache_hit=False, duration_ms=int((time.time() - t0) * 1000))
+            return demo
+
+    # fallback: no pending row → run the full synchronous novel pipeline from q
+    return _run_novel(q)
