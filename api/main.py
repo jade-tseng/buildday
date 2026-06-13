@@ -142,7 +142,7 @@ def _novel_prepare(q: str) -> dict:
     Returns a payload with the reference vector and a fully-built seed block,
     but does NOT run the global grid scan. Raises 422 if no usable seed."""
     intent = rewrite_intent(q)
-    key = novel_cache_key(intent["intent_key"], intent["place"])
+    key = novel_cache_key(q)
 
     seeds, seed_name, seed_coords = _novel_seed(intent)
     if not seeds:
@@ -197,8 +197,7 @@ def _run_novel(q: str) -> dict:
     """Synchronous end-to-end novel search → Demo-shaped dict (+ cache).
     The always-working fallback for the progressive /resolve + /matches split."""
     t0 = time.time()
-    intent = rewrite_intent(q)
-    key = novel_cache_key(intent["intent_key"], intent["place"])
+    key = novel_cache_key(q)
 
     if _supabase:
         cached = get_cached(_supabase, key)
@@ -264,9 +263,9 @@ def resolve(q: str = ""):
             "cached": cached,
         }
 
-    # novel
-    intent = rewrite_intent(q)
-    key = novel_cache_key(intent["intent_key"], intent["place"])
+    # novel — cache key is derived from the query, so we can check the cache
+    # before the (slower, non-deterministic) intent rewrite.
+    key = novel_cache_key(q)
     cached_full = get_cached(_supabase, key) if _supabase else None
     if cached_full:
         return {

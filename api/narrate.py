@@ -137,7 +137,8 @@ def narrate_novel(habitat_type: str, place: str | None, matches: list[dict], fal
         f"search engine. The user searched for '{habitat_type}'{anchor}. "
         f"Top habitat matches found:\n{match_summary}\n\n"
         "Write a 2-3 sentence dispatch in the style of an instrument readout crossed with "
-        "field notes. Be specific about the ecological signal, not generic. No preamble."
+        "field notes. Be specific about the ecological signal, not generic. "
+        "Plain prose only — no preamble, no markdown, no headings, no bullet points or labels."
     )
     try:
         msg = _client().messages.create(
