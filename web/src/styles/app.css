@@ -1,0 +1,622 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   App layout & components. Instrument-grade: hairlines, no shadows, depth from
+   surface value. Motion is reactive only after the one orchestrated load (§10).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.app {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+/* ── top bar ───────────────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 var(--s2);
+  border-bottom: 1px solid var(--grid);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--bone-dim);
+  flex: 0 0 auto;
+  z-index: 30;
+  background: var(--void);
+}
+.topbar-title {
+  color: var(--bone);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.topbar-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--signal);
+}
+.topbar-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--signal);
+  animation: pulse 2.4s var(--ease-in-out) infinite;
+}
+.topbar-coord {
+  color: var(--bone-dim);
+  font-variant-numeric: tabular-nums;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* ── stage (globe + map + query) ───────────────────────────────────────── */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.stage-map,
+.stage-globe {
+  position: absolute;
+  inset: 0;
+}
+.stage-map {
+  transition: opacity 1.1s var(--ease);
+  z-index: 5;
+}
+.stage-globe {
+  z-index: 10;
+  pointer-events: none;
+  animation: rise-in 1.2s var(--ease) both;
+}
+.re-map {
+  width: 100%;
+  height: 100%;
+}
+.map-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: var(--s3);
+  color: var(--bone-dim);
+  font-size: 12px;
+  background: var(--void);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── query bar (§5) ────────────────────────────────────────────────────── */
+.qbar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, calc(100% - var(--s4)));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+.qbar--center {
+  bottom: 18%;
+  animation: rise-in 1.2s var(--ease) 0.5s both;
+}
+.qbar--docked {
+  top: var(--s3);
+  bottom: auto;
+  transition:
+    top 0.7s var(--ease),
+    bottom 0.7s var(--ease);
+}
+
+.qbar-field {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  background: var(--panel);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+  padding: 0 var(--s2);
+  height: 52px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.qbar-field.is-focused {
+  border-color: var(--signal);
+  box-shadow: inset 0 0 0 1px var(--signal-deep);
+}
+.qbar-reticle {
+  color: var(--signal);
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+.qbar-input {
+  flex: 1 1 auto;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--bone);
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+.qbar-input::placeholder {
+  color: var(--bone-dim);
+}
+.qbar-submit {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 0;
+  color: var(--signal);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+.qbar-submit:disabled {
+  color: var(--bone-dim);
+  cursor: default;
+}
+.qbar-spin {
+  display: inline-block;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.qbar-suggest {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+.qbar-chip {
+  background: transparent;
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+  color: var(--bone-dim);
+  font-size: 12px;
+  padding: 4px 10px;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.qbar-chip:hover {
+  color: var(--bone);
+  border-color: var(--signal-deep);
+}
+
+/* status log — types out the pipeline as it runs */
+.qbar-log {
+  list-style: none;
+  margin: 0;
+  padding: var(--s1) var(--s2);
+  background: rgba(14, 19, 23, 0.72);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--bone-dim);
+  backdrop-filter: blur(2px);
+}
+.qbar-log-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: log-in 0.32s var(--ease) both;
+}
+.qbar-log-line:last-child {
+  color: var(--biosphere);
+}
+@keyframes log-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* error / empty state — in character (§11) */
+.error-line {
+  position: absolute;
+  left: 50%;
+  bottom: calc(18% - 36px);
+  transform: translateX(-50%);
+  color: var(--anomaly);
+  font-size: 13px;
+  z-index: 21;
+  animation: log-in 0.3s var(--ease) both;
+}
+
+/* imagery credit (§7) */
+.credit {
+  position: absolute;
+  right: var(--s1);
+  bottom: 4px;
+  font-size: 10px;
+  color: var(--bone-dim);
+  opacity: 0.7;
+  z-index: 6;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
+
+/* ── pins (rendered as MapLibre markers) ───────────────────────────────── */
+.re-pin {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.re-pin-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pin);
+  box-shadow: 0 0 0 2px var(--void);
+  position: relative;
+  z-index: 2;
+}
+.re-pin-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--pin);
+  border-radius: 50%;
+  opacity: 0.55;
+}
+.re-pin--seed .re-pin-ring {
+  animation: scan 2.6s var(--ease-in-out) infinite;
+}
+@keyframes scan {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.re-pin--drop {
+  animation: pin-drop 0.5s var(--ease) both;
+}
+@keyframes pin-drop {
+  0% {
+    transform: translateY(-12px) scale(0.7);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(2px) scale(1.05); /* 2px settle (§10) */
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+.re-pin--active .re-pin-dot {
+  box-shadow:
+    0 0 0 2px var(--void),
+    0 0 0 4px var(--pin);
+}
+.re-pin--active .re-pin-ring {
+  opacity: 1;
+  transform: scale(1.3);
+}
+
+/* ── dispatch panel (§3) ───────────────────────────────────────────────── */
+.dispatch {
+  position: absolute;
+  top: 40px; /* below topbar */
+  right: 0;
+  bottom: 0;
+  width: min(460px, 92vw);
+  background: var(--panel);
+  border-left: 1px solid var(--grid);
+  z-index: 25;
+  transform: translateX(102%);
+  transition: transform 0.7s var(--ease);
+  display: flex;
+  flex-direction: column;
+}
+.dispatch.is-visible {
+  transform: none;
+}
+.dispatch-inner {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--s3);
+}
+.dispatch-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.dispatch-seed {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  margin: 4px 0 0;
+  color: var(--bone);
+}
+.dispatch-coords {
+  font-size: 12px;
+  color: var(--signal);
+  flex: 0 0 auto;
+  padding-top: 2px;
+}
+.dispatch-habitat {
+  font-size: 12px;
+  color: var(--bone-dim);
+  line-height: 1.6;
+  margin: var(--s2) 0 0;
+}
+.rule {
+  border: 0;
+  border-top: 1px solid var(--grid);
+  margin: var(--s3) 0;
+}
+.dispatch-prose {
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--bone);
+  max-width: 62ch;
+  margin: 0 0 var(--s3);
+  font-weight: 400;
+}
+.dispatch-mark {
+  color: var(--biosphere);
+}
+.caret {
+  color: var(--signal);
+  animation: blink 1s steps(2) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.dispatch-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.5s var(--ease),
+    transform 0.5s var(--ease);
+}
+.dispatch-cards.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── match card ────────────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--grid);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: var(--s2);
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.card:hover,
+.card.is-active {
+  background: var(--panel-2);
+}
+.card.is-active {
+  border-color: var(--accent);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.card-coords {
+  font-size: 11px;
+  color: var(--bone-dim);
+}
+.card-photo {
+  position: relative;
+  margin: var(--s1) 0 var(--s2);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--panel-2);
+}
+.card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(0.9);
+}
+.card-credit {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 9px;
+  color: var(--bone);
+  background: rgba(6, 8, 10, 0.66);
+  padding: 1px 5px;
+  border-radius: var(--radius);
+}
+.card-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--bone);
+}
+.card-species {
+  font-size: 11px;
+  color: var(--bone-dim);
+  margin: 3px 0 var(--s1);
+  font-style: italic;
+}
+.card-note {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--bone);
+  margin: 0;
+}
+.card-footnote {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--bone-dim);
+  margin: var(--s1) 0 0;
+}
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--s2);
+  padding-top: var(--s1);
+  border-top: 1px solid var(--grid);
+}
+.card-fly,
+.card-src {
+  background: transparent;
+  border: 0;
+  color: var(--signal);
+  font-size: 10px;
+  padding: 0;
+}
+.card-fly:hover,
+.card-src:hover {
+  color: var(--bone);
+}
+
+.dispatch-sources {
+  margin-top: var(--s3);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--grid);
+  font-size: 11px;
+  color: var(--bone-dim);
+  line-height: 1.8;
+}
+
+.dispatch-back {
+  flex: 0 0 auto;
+  height: 44px;
+  background: var(--panel-2);
+  border: 0;
+  border-top: 1px solid var(--grid);
+  color: var(--signal);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.dispatch-back:hover {
+  background: var(--signal-deep);
+  color: var(--bone);
+}
+
+/* ── responsive: globe/map on top, dispatch below (§3) ─────────────────── */
+@media (max-width: 720px) {
+  .dispatch {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 62%;
+    border-left: 0;
+    border-top: 1px solid var(--grid);
+    transform: translateY(102%);
+  }
+  .dispatch.is-visible {
+    transform: none;
+  }
+  .qbar {
+    width: calc(100% - var(--s3));
+  }
+  .qbar--center {
+    bottom: auto;
+    top: 30%;
+  }
+  .dispatch-prose {
+    font-size: 18px;
+  }
+}
+
+/* MapLibre control restyle to match the instrument palette */
+.maplibregl-ctrl-group {
+  background: var(--panel) !important;
+  border: 1px solid var(--grid) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+}
+.maplibregl-ctrl-group button {
+  background: var(--panel) !important;
+}
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--grid) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-globe,
+  .qbar--center,
+  .stage-map {
+    animation: none !important;
+  }
+  .re-pin--drop {
+    animation: none !important;
+  }
+  .topbar-live-dot,
+  .re-pin--seed .re-pin-ring {
+    animation: none !important;
+  }
+}
