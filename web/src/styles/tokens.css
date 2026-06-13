@@ -38,10 +38,14 @@
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
   margin: 0;
+}
+#root {
+  /* let content grow past the viewport so the page can scroll to the
+     About section below the full-bleed hero (.app stays exactly 100vh) */
+  min-height: 100%;
 }
 
 body {
@@ -50,7 +54,9 @@ body {
   font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
   /* One ambient texture allowed: a very faint graticule over --void */
   background-image:
     linear-gradient(var(--grid) 1px, transparent 1px),
