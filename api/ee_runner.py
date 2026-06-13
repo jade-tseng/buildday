@@ -315,30 +315,73 @@ def sentinel2_thumb_url(lat: float, lon: float, half_deg: float = 0.18) -> str:
         return ""
 
 
-def run_similarity(concept: str) -> dict:
-    """Run EE similarity search. Returns a Demo-shaped dict."""
-    cfg = CONCEPT_CONFIG[concept]
-
+def _emb2024():
+    """The 2024 AlphaEarth embedding mosaic (64-band)."""
     col = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")
-    emb2024 = col.filter(ee.Filter.calendarRange(2024, 2024, "year")).mosaic()
+    return col.filter(ee.Filter.calendarRange(2024, 2024, "year")).mosaic()
 
-    # Sample seeds
-    good_vecs = []
-    for lat, lon in cfg["seeds"]:
+
+def _reference_from_seeds(image, seeds):
+    """Sample the embedding at each seed coord; return (normalized 64-d mean
+    reference vector or None if all masked, list of seeds that returned data)."""
+    good_vecs, used = [], []
+    for lat, lon in seeds:
         try:
-            props = _sample_at_point(emb2024, lat, lon, scale=30)
+            props = _sample_at_point(image, lat, lon, scale=30)
             if props:
-                vec = [float(props.get(b) or 0.0) for b in BANDS]
-                good_vecs.append(vec)
+                good_vecs.append([float(props.get(b) or 0.0) for b in BANDS])
+                used.append((lat, lon))
         except Exception:
             pass
-
     if not good_vecs:
-        raise RuntimeError(f"All seeds masked for concept '{concept}'")
-
+        return None, []
     n = len(good_vecs)
     mean_vec = [sum(e[i] for e in good_vecs) / n for i in range(64)]
-    ref = _l2_normalize(mean_vec)
+    return _l2_normalize(mean_vec), used
+
+
+def sample_reference(seeds):
+    """Fast one-shot seed sample used by the /resolve stage (no global scan).
+    Returns (normalized ref vector or None, list of seeds that returned data)."""
+    return _reference_from_seeds(_emb2024(), seeds)
+
+
+def run_similarity(
+    concept: str | None = None,
+    *,
+    seeds: list | None = None,
+    ref_vector: list | None = None,
+    thin_km: float | None = None,
+    label: str | None = None,
+) -> dict:
+    """Run EE similarity search. Returns a Demo-shaped dict.
+
+    Reference vector resolution order:
+      1. ref_vector — use directly (skips seed sampling; used by /matches)
+      2. seeds      — sample those coords (novel place / proposed seeds)
+      3. concept    — sample CONCEPT_CONFIG[concept]["seeds"] (curated path)
+
+    For the curated path the full Demo block comes from CONCEPT_CONFIG; for the
+    novel path a skeleton is returned and the caller fills seed/query/dispatch/log.
+    """
+    emb2024 = _emb2024()
+
+    if ref_vector is not None:
+        ref = _l2_normalize([float(v) for v in ref_vector])
+    elif seeds is not None:
+        ref, _used = _reference_from_seeds(emb2024, seeds)
+        if ref is None:
+            raise RuntimeError("All seeds masked")
+    elif concept is not None:
+        ref, _used = _reference_from_seeds(emb2024, CONCEPT_CONFIG[concept]["seeds"])
+        if ref is None:
+            raise RuntimeError(f"All seeds masked for concept '{concept}'")
+    else:
+        raise ValueError("run_similarity requires one of concept, seeds, or ref_vector")
+
+    if thin_km is None:
+        thin_km = CONCEPT_CONFIG[concept]["thin_km"] if concept is not None else 300
+    match_label = concept if concept is not None else label
 
     # Global grid sampling
     xmin, ymin, xmax, ymax = WORLD
@@ -367,15 +410,27 @@ def run_similarity(concept: str) -> dict:
 
     scored = [(lat, lon, s) for lat, lon, s in grid_data if s is not None]
     scored.sort(key=lambda x: x[2], reverse=True)
-    top = _spatial_thin(scored, cfg["thin_km"])
+    top = _spatial_thin(scored, thin_km)
 
-    matches = _build_matches(concept, top, limit=6)
+    matches = _build_matches(match_label, top, limit=6)
 
+    if concept is not None:
+        cfg = CONCEPT_CONFIG[concept]
+        return {
+            "query": cfg["query"],
+            "seed": cfg["seed_meta"],
+            "dispatch": cfg["dispatch"],
+            "matches": matches,
+            "sources": cfg["sources"],
+            "log": cfg["log"],
+        }
+
+    # novel skeleton — caller (_run_novel) fills seed / query / dispatch / log
     return {
-        "query": cfg["query"],
-        "seed": cfg["seed_meta"],
-        "dispatch": cfg["dispatch"],
+        "query": "",
+        "seed": {},
+        "dispatch": "",
         "matches": matches,
-        "sources": cfg["sources"],
-        "log": cfg["log"],
+        "sources": [],
+        "log": [],
     }
