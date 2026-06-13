@@ -11,14 +11,20 @@ def novel_cache_key(intent_key: str, place: str | None) -> str:
 
 
 def get_cached(supabase: Client, concept: str) -> dict | None:
-    result = (
-        supabase.table("search_cache")
-        .select("response")
-        .eq("concept", concept)
-        .maybe_single()
-        .execute()
-    )
-    return result.data["response"] if result.data else None
+    # maybe_single() returns None (not an object) when no row matches, so guard.
+    try:
+        result = (
+            supabase.table("search_cache")
+            .select("response")
+            .eq("concept", concept)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        return None
+    if result and result.data:
+        return result.data["response"]
+    return None
 
 
 def set_cached(supabase: Client, concept: str, response: dict) -> None:
