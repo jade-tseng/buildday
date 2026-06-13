@@ -1,0 +1,131 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Token system — UI.md §2. Load-bearing semantics:
+   blue = the machine sensing · green = confirmed life · amber = flagged anomaly
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* COLOR */
+  --void: #06080a; /* page background — near-black, faint blue cast */
+  --panel: #0e1317; /* raised panels, query bar, cards */
+  --panel-2: #131a1f; /* hover / nested surfaces */
+  --grid: #1e272d; /* hairlines, 1px dividers, globe graticule */
+  --bone: #e9edea; /* primary text (off-white, never pure #FFF) */
+  --bone-dim: #8a9590; /* secondary text, captions, coordinates */
+  --signal: #4da3ff; /* the apparatus: UI chrome, seed pin, scanning, links */
+  --signal-deep: #1f4e8c; /* signal, pressed/active */
+  --biosphere: #46d08a; /* life / CONFIRMED occurrence / the green register */
+  --anomaly: #e8c547; /* NOVEL candidate — flagged habitat, no records yet */
+
+  /* TYPE */
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "Newsreader", Georgia, serif;
+
+  /* LAYOUT — 8px spacing base */
+  --s1: 8px;
+  --s2: 16px;
+  --s3: 24px;
+  --s4: 32px;
+  --s5: 48px;
+  --radius: 2px;
+
+  /* MOTION */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  /* One ambient texture allowed: a very faint graticule over --void */
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center;
+  background-blend-mode: normal;
+}
+body::before {
+  /* dim the ambient grid to 2–3% so it reads as texture, not a table */
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--void);
+  opacity: 0.97;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* eyebrows / labels — caps, mechanical, +0.08em tracking */
+.eyebrow {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--bone-dim);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+.serif {
+  font-family: var(--font-serif);
+}
+
+/* Keyboard focus always visible (1px --signal outline) */
+:focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--signal);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--grid);
+  border-radius: 0;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
