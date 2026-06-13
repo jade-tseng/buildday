@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { SUGGESTIONS } from "../data/demo";
+import { SUGGESTIONS, PRAIRIE_SUGGESTION } from "../data/demo";
 
 interface Props {
   docked: boolean; // centered in idle, docked to top after first search
@@ -8,6 +8,7 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
+  onPick: (q: string) => void; // fill + run a working suggestion in one click
 }
 
 export default function QueryBar({
@@ -17,6 +18,7 @@ export default function QueryBar({
   value,
   onChange,
   onSubmit,
+  onPick,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
@@ -72,6 +74,16 @@ export default function QueryBar({
       {!docked && (
         <div className="qbar-suggest">
           <span className="eyebrow">try:</span>
+          {/* working path — fills + runs the prairie /goal query in one click */}
+          <button
+            type="button"
+            className="qbar-chip qbar-chip--live mono"
+            onClick={() => onPick(PRAIRIE_SUGGESTION)}
+            disabled={running}
+            title="runs the live /goal prairie search"
+          >
+            prairie like in Montana
+          </button>
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
@@ -80,8 +92,8 @@ export default function QueryBar({
               onClick={() => {
                 onChange(s);
               }}
-              // only the kelp path fully works; suggestions hint at scope (§5)
-              title="demo scope: kelp path only"
+              // these hint at scope; only kelp + prairie paths fully work (§5)
+              title="demo scope: kelp + prairie paths"
             >
               {s}
             </button>

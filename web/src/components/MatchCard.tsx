@@ -29,10 +29,14 @@ export default function MatchCard({ match, active, onHover, onFocus }: Props) {
         </span>
       </header>
 
-      <div className="card-photo">
-        <img src={match.photo.url} alt={match.name} loading="lazy" />
-        <span className="card-credit mono">{match.photo.credit}</span>
-      </div>
+      {match.photo.url && (
+        <div className="card-photo">
+          <img src={match.photo.url} alt={match.name} loading="lazy" />
+          {match.photo.credit && (
+            <span className="card-credit mono">{match.photo.credit}</span>
+          )}
+        </div>
+      )}
 
       <h3 className="card-name">{match.name}</h3>
       <p className="card-species mono">{match.species}</p>

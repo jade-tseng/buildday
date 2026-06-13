@@ -61,16 +61,25 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
-def health():
-    return {"ok": True}
+# Keyword → concept resolver for natural-language prompts (/goal). First concept
+# whose keywords appear in the prompt wins; order matters for overlap.
+CONCEPT_KEYWORDS = [
+    ("prairie", ("prairie", "grassland", "rangeland", "steppe", "montana", "plains", "savanna")),
+    ("kelp", ("kelp", "monterey", "reef", "coast", "seaweed", "ocean")),
+]
 
 
-@app.get("/search")
-def search(concept: str = "kelp"):
-    if concept not in CONCEPT_CONFIG:
-        raise HTTPException(status_code=400, detail=f"Unknown concept '{concept}'")
+def resolve_concept(prompt: str) -> str | None:
+    """Map a free-text prompt to a known concept id, or None if no anchor."""
+    p = (prompt or "").lower()
+    for concept, keywords in CONCEPT_KEYWORDS:
+        if concept in CONCEPT_CONFIG and any(k in p for k in keywords):
+            return concept
+    return None
 
+
+def _run_concept(concept: str) -> dict:
+    """Shared cache → live-EE → narrate flow used by /search and /goal."""
     t0 = time.time()
 
     if _supabase:
@@ -93,4 +102,32 @@ def search(concept: str = "kelp"):
         set_cached(_supabase, concept, response)
         log_query(_supabase, concept, cache_hit=False, duration_ms=int((time.time() - t0) * 1000))
 
+    return response
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
+@app.get("/search")
+def search(concept: str = "kelp"):
+    if concept not in CONCEPT_CONFIG:
+        raise HTTPException(status_code=400, detail=f"Unknown concept '{concept}'")
+    return _run_concept(concept)
+
+
+@app.get("/goal")
+def goal(q: str = ""):
+    """Natural-language search: 'prairie like in Montana — brown dry grassland'
+    → resolves to a concept → returns ecologically similar places worldwide."""
+    concept = resolve_concept(q)
+    if not concept:
+        raise HTTPException(
+            status_code=404, detail="no anchor found — try a place or a species"
+        )
+    response = _run_concept(concept)
+    # echo the user's prompt back as the query the UI displays
+    if q.strip():
+        response = {**response, "query": q.strip()}
     return response
