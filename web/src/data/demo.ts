@@ -45,6 +45,19 @@ export interface Demo {
   log: string[];
 }
 
+// Fast first stage of the progressive novel-query flow (GET /resolve). Carries
+// enough to center the map + drop the seed pin before the slow grid scan runs.
+export interface ResolveResult {
+  query: string;
+  track: "novel" | "curated";
+  concept: string | null;
+  cache_key: string;
+  seed: Seed;
+  dispatch_preview: string;
+  log: string[];
+  cached: boolean;
+}
+
 export const DEMO: Demo = {
   query: "where can i find kelp forests like in monterey bay, ca",
 
