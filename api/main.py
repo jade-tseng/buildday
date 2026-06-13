@@ -45,13 +45,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+_extra_origins = [o.strip() for o in os.environ.get("EXTRA_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://rewilding-earth.vercel.app",
+        "https://rewild-earth.vercel.app",
+        "https://rewild-earth-jades-projects-65d65bd0.vercel.app",
         "http://localhost:5173",
         "http://localhost:3000",
+        *_extra_origins,
     ],
+    allow_origin_regex=r"https://rewild-earth-[a-z0-9-]+\.vercel\.app",
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
