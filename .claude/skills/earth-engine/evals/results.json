@@ -1,0 +1,87 @@
+{
+  "date": "2026-06-13",
+  "passed": 8,
+  "total": 8,
+  "rows": [
+    {
+      "location": "Monterey, California",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "Polygon",
+      "area_km2": 9807.24,
+      "centroid_lat": 36.242136566195136,
+      "centroid_lon": -121.30951540336478,
+      "display_name": "Monterey County, California, United States"
+    },
+    {
+      "location": "Germany",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "MultiPolygon",
+      "area_km2": 380071.04,
+      "centroid_lat": 51.2530257071391,
+      "centroid_lon": 10.349925956008798,
+      "display_name": "Deutschland"
+    },
+    {
+      "location": "Yosemite National Park",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "Polygon",
+      "area_km2": 3023.51,
+      "centroid_lat": 37.84826092372274,
+      "centroid_lon": -119.55688568583119,
+      "display_name": "Yosemite National Park, California, United States"
+    },
+    {
+      "location": "Texas",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "Polygon",
+      "area_km2": 702649.4,
+      "centroid_lat": 31.396889732830097,
+      "centroid_lon": -99.25627129836354,
+      "display_name": "Texas, United States"
+    },
+    {
+      "location": "Osaka, Japan",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "Polygon",
+      "area_km2": 289.85,
+      "centroid_lat": 34.6624306137189,
+      "centroid_lon": 135.46941858550375,
+      "display_name": "\u5927\u962a\u5e02, \u5927\u962a\u5e9c, \u65e5\u672c"
+    },
+    {
+      "location": "Death Valley National Park",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "MultiPolygon",
+      "area_km2": 13870.79,
+      "centroid_lat": 36.47510304054081,
+      "centroid_lon": -117.1251046378694,
+      "display_name": "Death Valley National Park, California, 92328, United States"
+    },
+    {
+      "location": "New Zealand",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "MultiPolygon",
+      "area_km2": 449049.22,
+      "centroid_lat": -41.506828587676516,
+      "centroid_lon": 173.36160872161022,
+      "display_name": "New Zealand / Aotearoa"
+    },
+    {
+      "location": "Washington, D.C.",
+      "pass": true,
+      "failures": [],
+      "geometry_type": "Polygon",
+      "area_km2": 177.07,
+      "centroid_lat": 38.9048174424676,
+      "centroid_lon": -77.01635720295566,
+      "display_name": "Washington, District of Columbia, United States"
+    }
+  ]
+}
