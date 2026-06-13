@@ -1,0 +1,9 @@
+import type { Demo } from "../data/demo";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+export async function fetchSearch(concept: string): Promise<Demo> {
+  const res = await fetch(`${API_URL}/search?concept=${concept}`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
