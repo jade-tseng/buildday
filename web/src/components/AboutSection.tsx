@@ -67,13 +67,7 @@ const BLOCKS: Block[] = [
         <em className="t-signal">nearest-neighbour search</em> across the planet
         by cosine similarity over that embedding manifold, scoring every cell on
         Earth by how closely its fingerprint matches and thinning the top hits so
-        they don't cluster. Each candidate is then checked against real
-        occurrence records:{" "}
-        <em className="t-bio">green where the records run thick</em>,{" "}
-        <em className="t-anomaly">amber where the conditions are right but the
-        records haven't caught up yet</em>. The satellite cannot see the kelp. It
-        reads the 64 numbers that describe the ocean the kelp needs — and then it
-        looks for that same signature everywhere else.
+        they don't cluster.
       </>
     ),
   },
