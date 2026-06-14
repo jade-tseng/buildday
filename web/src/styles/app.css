@@ -138,6 +138,15 @@
     bottom 0.7s var(--ease);
 }
 
+.qbar-tagline {
+  text-align: center;
+  font-family: var(--font-display);
+  color: var(--bone-dim);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  margin: 0 0 var(--s1);
+}
+
 .qbar-field {
   display: flex;
   align-items: center;
