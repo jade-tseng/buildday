@@ -1,4 +1,4 @@
-import type { Demo, ResolveResult } from "../data/demo";
+import type { Demo, ResolveResult, Paper } from "../data/demo";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -31,4 +31,14 @@ export async function fetchMatches(cacheKey: string, prompt: string): Promise<De
   );
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
+}
+
+/** Relevant ecology/conservation papers for a match's region (OpenAlex). */
+export async function fetchPapers(place: string, habitat: string): Promise<Paper[]> {
+  const res = await fetch(
+    `${API_URL}/papers?place=${encodeURIComponent(place)}&habitat=${encodeURIComponent(habitat)}`
+  );
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  return data.papers ?? [];
 }

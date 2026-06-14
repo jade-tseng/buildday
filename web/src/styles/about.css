@@ -8,7 +8,6 @@
   position: relative;
   z-index: 1;
   background: var(--void);
-  border-top: 1px solid var(--grid);
 }
 
 .about-inner {
@@ -37,7 +36,6 @@
 /* ── numbered blocks ───────────────────────────────────────────────────── */
 .about-block {
   padding: var(--s5) 0;
-  border-top: 1px solid var(--grid);
 }
 .about-block-label {
   display: flex;
@@ -95,7 +93,6 @@
 .about-foot {
   margin-top: var(--s5);
   padding-top: var(--s4);
-  border-top: 1px solid var(--grid);
 }
 .about-up {
   background: transparent;

@@ -554,6 +554,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--s2);
+  flex-wrap: wrap;
   margin-top: var(--s2);
   padding-top: var(--s1);
   border-top: 1px solid var(--grid);
@@ -569,6 +571,48 @@
 .card-fly:hover,
 .card-src:hover {
   color: var(--bone);
+}
+button.card-src {
+  cursor: pointer;
+}
+
+/* inline academic papers (lazy-loaded per match) */
+.card-papers {
+  margin-top: var(--s2);
+  padding-top: var(--s1);
+  border-top: 1px solid var(--grid);
+}
+.card-papers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.card-paper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.card-paper-title {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--bone);
+  text-decoration: none;
+}
+.card-paper-title:hover {
+  color: var(--signal);
+  text-decoration: underline;
+}
+.card-paper-meta {
+  font-size: 10px;
+  color: var(--bone-dim);
+}
+.card-paper-empty {
+  font-size: 10px;
+  color: var(--bone-dim);
+  margin: 0;
 }
 
 .dispatch-sources {

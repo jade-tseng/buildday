@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import time
@@ -11,6 +12,7 @@ from ee_runner import run_similarity, sample_reference, sentinel2_thumb_url, CON
 from supabase_cache import get_cached, set_cached, log_query, novel_cache_key
 from narrate import generate_dispatch, rewrite_intent, narrate_novel, enrich_matches
 from geocode import geocode_point, reverse_geocode
+from papers import find_papers
 
 PROJECT = "buildday-499318"
 
@@ -335,3 +337,23 @@ def matches(cache_key: str = "", q: str = ""):
 
     # fallback: no pending row → run the full synchronous novel pipeline from q
     return _run_novel(q)
+
+
+@app.get("/papers")
+def papers(place: str = "", habitat: str = ""):
+    """Relevant ecology/conservation papers for a match's region (OpenAlex).
+    Returns 2-5 papers; cached by place+habitat so repeats are instant."""
+    place = place.strip()
+    if not place:
+        return {"papers": []}
+
+    key = "papers:" + hashlib.sha1(f"{place.lower()}|{habitat.strip().lower()}".encode()).hexdigest()[:16]
+    if _supabase:
+        cached = get_cached(_supabase, key)
+        if cached:
+            return cached
+
+    result = {"papers": find_papers(place, habitat)}
+    if _supabase and result["papers"]:
+        set_cached(_supabase, key, result)
+    return result

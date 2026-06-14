@@ -36,6 +36,16 @@ export interface SourceLink {
   url: string;
 }
 
+// An academic paper for a match's region (from /papers → OpenAlex).
+export interface Paper {
+  title: string;
+  authors: string;
+  year: number | null;
+  venue: string;
+  citations: number;
+  url: string;
+}
+
 export interface Demo {
   query: string;
   seed: Seed;
