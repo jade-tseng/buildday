@@ -268,12 +268,6 @@ export default function App() {
         >
           REWILD&nbsp;EARTH
         </button>
-        <span className="topbar-right">
-          <span className="topbar-live">
-            <span className="topbar-live-dot" /> live
-          </span>
-          <Ticker phase={phase} seedCoords={result.seed.coords} />
-        </span>
       </header>
 
       {/* stage: globe + map share the same frame; query bar floats over it */}
@@ -366,29 +360,5 @@ export default function App() {
 
       <AboutSection />
     </>
-  );
-}
-
-// slowly ticking coordinate readout — sells "instrument" (§4)
-function Ticker({ phase, seedCoords }: { phase: Phase; seedCoords: Coords }) {
-  const [t, setT] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setT((x) => x + 1), 900);
-    return () => window.clearInterval(id);
-  }, []);
-  if (phase === "result") {
-    return (
-      <span className="topbar-coord">
-        {seedCoords[0].toFixed(2)} / {seedCoords[1].toFixed(2)}
-      </span>
-    );
-  }
-  // a drifting lat/lon while idle
-  const lat = (Math.sin(t / 7) * 64).toFixed(2);
-  const lon = (((t * 6) % 360) - 180).toFixed(2);
-  return (
-    <span className="topbar-coord">
-      {lat} / {lon}
-    </span>
   );
 }
