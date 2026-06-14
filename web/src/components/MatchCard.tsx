@@ -7,6 +7,24 @@ interface Props {
   onFocus: () => void;
 }
 
+// Google Scholar search for this region, scoped to the ecology/conservation
+// literature. Scholar indexes journals + arXiv preprints, so it's the right
+// single entry point for ecology / environmental science / conservation work.
+function scholarUrl(match: Match): string {
+  // fall back to coordinates if the card never got a real place label
+  const place = /^signature match/i.test(match.name)
+    ? `${match.coords[0].toFixed(2)}, ${match.coords[1].toFixed(2)}`
+    : match.name;
+  const q = [
+    `"${place}"`,
+    match.species,
+    '(ecology OR conservation OR "environmental science")',
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return `https://scholar.google.com/scholar?q=${encodeURIComponent(q)}`;
+}
+
 export default function MatchCard({ match, active, onHover, onFocus }: Props) {
   const confirmed = match.status === "CONFIRMED";
   const accent = confirmed ? "var(--biosphere)" : "var(--anomaly)";
@@ -55,6 +73,16 @@ export default function MatchCard({ match, active, onHover, onFocus }: Props) {
         >
           ⌖ fly to location
         </button>
+        <a
+          className="card-src eyebrow"
+          href={scholarUrl(match)}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          title="Search ecology / conservation papers for this region on Google Scholar"
+        >
+          find papers ↗
+        </a>
         {match.photo.source && (
           <a
             className="card-src eyebrow"
