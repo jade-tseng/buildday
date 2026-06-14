@@ -56,7 +56,7 @@ const BLOCKS: Block[] = [
   {
     num: "03",
     eyebrow: "How It Reads The Planet",
-    heading: <>The engine never looks for the species. It looks for the place.</>,
+    heading: <>Point at one living system. The engine finds its closest matches anywhere on Earth.</>,
     body: (
       <>
         Geospatial foundation models compress every ten metres of the Earth's
