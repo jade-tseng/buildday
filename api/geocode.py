@@ -9,6 +9,7 @@ User-Agent (it blocks the default python-requests UA) and rate-limits to ~1 req/
 import requests
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
 # Nominatim usage policy: identify the app + a contact address.
 USER_AGENT = "RewildingEarth/1.0 (jadeyutseng@gmail.com)"
 
@@ -44,3 +45,32 @@ def geocode_point(location_name: str) -> tuple[float, float, str] | None:
         return float(result["lat"]), float(result["lon"]), result.get("display_name", location_name)
     except (KeyError, ValueError, TypeError):
         return None
+
+
+def reverse_geocode(lat: float, lon: float) -> str | None:
+    """Reverse-geocode a coordinate to a concise locality label via Nominatim,
+    e.g. 'Sitka, Alaska, United States'. Returns None over ocean / no result /
+    failure (the match grid is coarse, so many hits land far from settlements)."""
+    try:
+        resp = requests.get(
+            NOMINATIM_REVERSE_URL,
+            params={"lat": lat, "lon": lon, "format": "json", "zoom": 8, "addressdetails": 1},
+            headers={"User-Agent": USER_AGENT},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return None
+    if not data or data.get("error"):
+        return None
+    addr = data.get("address", {})
+    # most-specific → least-specific, then country
+    locality = (
+        addr.get("city") or addr.get("town") or addr.get("village")
+        or addr.get("county") or addr.get("state_district")
+    )
+    region = addr.get("state") or addr.get("region")
+    country = addr.get("country")
+    parts = [p for p in (locality, region, country) if p]
+    return ", ".join(dict.fromkeys(parts)) or data.get("display_name")
