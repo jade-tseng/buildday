@@ -266,7 +266,7 @@ export default function App() {
           onClick={goHome}
           aria-label="Back to home"
         >
-          REWILDING&nbsp;EARTH
+          REWILD&nbsp;EARTH
         </button>
         <span className="topbar-right">
           <span className="topbar-live">

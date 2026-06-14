@@ -34,6 +34,10 @@ export default function QueryBar({
 
   return (
     <div className={`qbar ${docked ? "qbar--docked" : "qbar--center"}`}>
+      {!docked && (
+        <p className="qbar-tagline">imagine a planet you can talk to…</p>
+      )}
+
       {log.length > 0 && (
         <ul className="qbar-log mono" aria-live="polite">
           {log.map((line, i) => (
