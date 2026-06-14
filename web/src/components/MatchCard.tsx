@@ -1,4 +1,6 @@
-import type { Match } from "../data/demo";
+import { useState } from "react";
+import type { Match, Paper } from "../data/demo";
+import { fetchPapers } from "../util/api";
 
 interface Props {
   match: Match;
@@ -7,28 +9,31 @@ interface Props {
   onFocus: () => void;
 }
 
-// Google Scholar search for this region, scoped to the ecology/conservation
-// literature. Scholar indexes journals + arXiv preprints, so it's the right
-// single entry point for ecology / environmental science / conservation work.
-function scholarUrl(match: Match): string {
-  // fall back to coordinates if the card never got a real place label
-  const place = /^signature match/i.test(match.name)
-    ? `${match.coords[0].toFixed(2)}, ${match.coords[1].toFixed(2)}`
-    : match.name;
-  const q = [
-    `"${place}"`,
-    match.species,
-    '(ecology OR conservation OR "environmental science")',
-  ]
-    .filter(Boolean)
-    .join(" ");
-  return `https://scholar.google.com/scholar?q=${encodeURIComponent(q)}`;
-}
-
 export default function MatchCard({ match, active, onHover, onFocus }: Props) {
   const confirmed = match.status === "CONFIRMED";
   const accent = confirmed ? "var(--biosphere)" : "var(--anomaly)";
   const label = confirmed ? "CONFIRMED" : "NOVEL CANDIDATE";
+
+  // lazy-loaded academic papers for this region (ecology/conservation literature)
+  const [papers, setPapers] = useState<Paper[] | null>(null);
+  const [papersState, setPapersState] = useState<"idle" | "loading" | "done">("idle");
+
+  const loadPapers = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (papersState !== "idle") return;
+    setPapersState("loading");
+    // real place if we have one, else fall back to coordinates
+    const place = /^signature match/i.test(match.name)
+      ? `${match.coords[0].toFixed(2)}, ${match.coords[1].toFixed(2)}`
+      : match.name;
+    try {
+      setPapers(await fetchPapers(place, match.species));
+    } catch {
+      setPapers([]);
+    } finally {
+      setPapersState("done");
+    }
+  };
 
   return (
     <article
@@ -73,16 +78,21 @@ export default function MatchCard({ match, active, onHover, onFocus }: Props) {
         >
           ⌖ fly to location
         </button>
-        <a
-          className="card-src eyebrow"
-          href={scholarUrl(match)}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          title="Search ecology / conservation papers for this region on Google Scholar"
-        >
-          find papers ↗
-        </a>
+        {papersState === "idle" && (
+          <button
+            type="button"
+            className="card-src eyebrow"
+            onClick={loadPapers}
+            title="Find ecology / conservation papers for this region"
+          >
+            find papers
+          </button>
+        )}
+        {papersState === "loading" && (
+          <span className="card-src eyebrow" aria-live="polite">
+            searching…
+          </span>
+        )}
         {match.photo.source && (
           <a
             className="card-src eyebrow"
@@ -95,6 +105,34 @@ export default function MatchCard({ match, active, onHover, onFocus }: Props) {
           </a>
         )}
       </div>
+
+      {papersState === "done" && (
+        <div className="card-papers" onClick={(e) => e.stopPropagation()}>
+          {papers && papers.length > 0 ? (
+            <ul className="card-papers-list">
+              {papers.map((p, i) => (
+                <li key={i} className="card-paper">
+                  <a
+                    className="card-paper-title serif"
+                    href={p.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {p.title}
+                  </a>
+                  <span className="card-paper-meta mono">
+                    {[p.authors, p.year, p.venue].filter(Boolean).join(" · ")}
+                    {" · "}
+                    {p.citations.toLocaleString()} cit.
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="card-paper-empty mono">no papers found for this region</p>
+          )}
+        </div>
+      )}
     </article>
   );
 }
