@@ -59,7 +59,7 @@ const BLOCKS: Block[] = [
     heading: <>The engine never looks for the species. It looks for the place.</>,
     body: (
       <>
-        Google's AlphaEarth model compresses every ten metres of the Earth's
+        Geospatial foundation models compress every ten metres of the Earth's
         surface into a <em className="t-signal">64-dimensional embedding</em> — a
         single unit-length vector encoding water, season, terrain, and the
         texture of a living system, learned across a year of satellite passes.
@@ -97,9 +97,8 @@ export default function AboutSection() {
             nervous system
           </p>
           <h2 className="about-thesis serif">
-            The Earth has grown a sensing skin of satellites. This is an
-            instrument plugged into it — built to ask the planet where life like
-            this can live.
+            The Earth has grown a sensing skin of satellites. Now you can ask the
+            planet about itself...
           </h2>
         </header>
 
@@ -119,12 +118,6 @@ export default function AboutSection() {
           <button className="about-up mono" onClick={toTop}>
             ↑&nbsp; BACK TO THE INSTRUMENT
           </button>
-          <p className="about-lineage mono">
-            In the lineage of planetary computation · Bratton / Antikythera ·
-            and global rewilding initiatives. Engine: nearest-neighbour
-            retrieval over AlphaEarth satellite embeddings, verified against open
-            occurrence records.
-          </p>
         </footer>
       </div>
     </section>
