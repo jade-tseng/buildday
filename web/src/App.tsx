@@ -240,6 +240,12 @@ export default function App() {
     setFocus({ coords: m.coords, key: Date.now() });
   }, [result]);
 
+  // clicking the title returns to the idle home (globe + empty query)
+  const goHome = useCallback(() => {
+    backToGlobe();
+    setQuery("");
+  }, [backToGlobe]);
+
   const globePhase: GlobePhase =
     phase === "result" ? "hidden" : (phase as GlobePhase);
   const mapMounted = phase === "dissolving" || phase === "result";
@@ -254,7 +260,14 @@ export default function App() {
     <div className={`app phase-${phase}`}>
       {/* top bar */}
       <header className="topbar mono">
-        <span className="topbar-title">REWILDING&nbsp;EARTH</span>
+        <button
+          type="button"
+          className="topbar-title"
+          onClick={goHome}
+          aria-label="Back to home"
+        >
+          REWILDING&nbsp;EARTH
+        </button>
         <span className="topbar-right">
           <span className="topbar-live">
             <span className="topbar-live-dot" /> live
