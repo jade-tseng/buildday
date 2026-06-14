@@ -258,7 +258,7 @@ export function pickMock(query: string): Demo {
 }
 
 // Ghost suggestions hint at scope without committing to building them (§5).
-export const SUGGESTIONS = ["chanterelle forests", "cold-water reefs"];
+export const SUGGESTIONS = ["chanterelle forests"];
 
 // One-click working suggestion for the prairie /goal path.
 export const PRAIRIE_SUGGESTION = "prairie like in Montana — brown dry grassland/rangeland";

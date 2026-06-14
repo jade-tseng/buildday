@@ -27,9 +27,14 @@
   background: var(--void);
 }
 .topbar-title {
+  font: inherit;
   color: var(--bone);
   font-weight: 600;
   letter-spacing: 0.22em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 .topbar-right {
   display: flex;
