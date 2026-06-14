@@ -55,45 +55,25 @@ const BLOCKS: Block[] = [
   },
   {
     num: "03",
-    eyebrow: "The Lineage",
-    heading: (
-      <>
-        Rewilding Earth sits where{" "}
-        <em className="t-signal">planetary computation</em> meets{" "}
-        <em className="t-bio">rewilding</em>.
-      </>
-    ),
-    body: (
-      <>
-        From planetary computation — Bratton, Antikythera — comes the premise:
-        the Earth, wrapped in a skin of satellites and sensors, has begun to
-        perceive and model <em>itself</em>. The first image of a black hole was
-        made by linking telescopes across the planet and letting the Earth's own
-        rotation turn the lens. From rewilding comes the conviction that
-        ecosystems recover when we restore the conditions they need and step
-        back. We join the two: an instrument that reads the planet's own sensing
-        skin to find where the conditions for life already exist — so that
-        protection and restoration can follow the evidence, not the borders of a
-        dataset.
-      </>
-    ),
-  },
-  {
-    num: "04",
     eyebrow: "How It Reads The Planet",
     heading: <>The engine never looks for the species. It looks for the place.</>,
     body: (
       <>
-        Satellite embeddings compress every ten metres of the Earth's surface
-        into a fingerprint of its conditions — water, season, terrain, the
-        texture of a living system. Name a habitat and the tool retrieves its
-        nearest neighbours worldwide, then checks each against real occurrence
-        records:{" "}
+        Google's AlphaEarth model compresses every ten metres of the Earth's
+        surface into a <em className="t-signal">64-dimensional embedding</em> — a
+        single unit-length vector encoding water, season, terrain, and the
+        texture of a living system, learned across a year of satellite passes.
+        Naming a habitat resolves to one such vector; the engine then runs a{" "}
+        <em className="t-signal">nearest-neighbour search</em> across the planet
+        by cosine similarity over that embedding manifold, scoring every cell on
+        Earth by how closely its fingerprint matches and thinning the top hits so
+        they don't cluster. Each candidate is then checked against real
+        occurrence records:{" "}
         <em className="t-bio">green where the records run thick</em>,{" "}
         <em className="t-anomaly">amber where the conditions are right but the
         records haven't caught up yet</em>. The satellite cannot see the kelp. It
-        reads the ocean the kelp needs — and then it looks for that same ocean
-        everywhere else.
+        reads the 64 numbers that describe the ocean the kelp needs — and then it
+        looks for that same signature everywhere else.
       </>
     ),
   },
